@@ -1,10 +1,14 @@
 export const CORE_VERSION = "0.1.0";
 
+export * from "@tent/shared";
+
 export * from "./env.js";
 export * from "./logger.js";
 
 export * as db from "./db/index.js";
 export * as schema from "./db/schema.js";
+export { getDb, getPool, closeDb } from "./db/index.js";
+export * from "./db/schema.js";
 
 export * as cloudflare from "./cloudflare/index.js";
 export * as ssh from "./ssh/index.js";

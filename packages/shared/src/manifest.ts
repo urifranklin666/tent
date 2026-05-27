@@ -24,7 +24,7 @@ export const TemplateManifest = z.object({
       postgres: z.boolean().default(false),
       nodejs: z.boolean().default(false),
     })
-    .default({}),
+    .default({ docker: false, postgres: false, nodejs: false }),
   ports: z
     .object({
       internal: z.number().int().positive(),

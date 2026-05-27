@@ -14,8 +14,16 @@ export async function cmdDoctor(): Promise<void> {
   try {
     const env = getEnv();
     checks.push({ name: "env file loaded", pass: true });
-    checks.push({ name: "cloudflare configured", pass: !!env.CLOUDFLARE_API_TOKEN, detail: env.CLOUDFLARE_API_TOKEN ? undefined : "missing CLOUDFLARE_API_TOKEN" });
-    checks.push({ name: "discord oauth configured", pass: !!env.DISCORD_CLIENT_ID, detail: env.DISCORD_CLIENT_ID ? undefined : "web UI/bot won't authenticate without this" });
+    checks.push({
+      name: "cloudflare configured",
+      pass: !!env.CLOUDFLARE_API_TOKEN,
+      ...(env.CLOUDFLARE_API_TOKEN ? {} : { detail: "missing CLOUDFLARE_API_TOKEN" }),
+    });
+    checks.push({
+      name: "discord oauth configured",
+      pass: !!env.DISCORD_CLIENT_ID,
+      ...(env.DISCORD_CLIENT_ID ? {} : { detail: "web UI/bot won't authenticate without this" }),
+    });
   } catch (err) {
     checks.push({ name: "env file loaded", pass: false, detail: String(err) });
   }

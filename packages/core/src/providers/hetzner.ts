@@ -79,7 +79,7 @@ async function hcloud<T>(
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+    ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
   });
   const text = await res.body.text();
   if (res.statusCode >= 400) {

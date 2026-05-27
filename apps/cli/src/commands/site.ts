@@ -95,7 +95,7 @@ export async function cmdSiteNew(domain: string, options: { wait?: boolean } = {
     const v = await p.text({
       message: `${key}${def.description ? " — " + def.description : ""}`,
       placeholder: def.default !== undefined ? String(def.default) : "",
-      defaultValue: def.default !== undefined ? String(def.default) : undefined,
+      ...(def.default !== undefined ? { defaultValue: String(def.default) } : {}),
     });
     if (p.isCancel(v)) {
       p.cancel("cancelled");
