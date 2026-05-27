@@ -1,5 +1,7 @@
-export const SHARED_VERSION = "0.1.0";
+export * from "./ids.js";
+export * from "./enums.js";
+export * from "./progress.js";
+export * from "./manifest.js";
+export * from "./provider.js";
 
-// Shared types and Zod schemas used by all apps and core.
-// Populated in Phase 1 (server/site/template/job/secret shapes,
-// provider/template manifests, job progress event types).
+export const SHARED_VERSION = "0.1.0";
