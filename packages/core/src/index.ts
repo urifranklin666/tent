@@ -18,6 +18,9 @@ export * from "./providers/index.js";
 export { syncTemplates, loadTemplatesFromDisk, DEFAULT_TEMPLATES_ROOT } from "./templates/index.js";
 
 export * from "./jobs/index.js";
+export { registerAllHandlers } from "./jobs/handlers/index.js";
+export { ensurePrivateKeyFile } from "./keyfile.js";
+export { allocateSitePort } from "./ports.js";
 
 export { ServerService, type AddServerInput } from "./services/server.js";
 export { SiteService, type CreateSiteInput } from "./services/site.js";

@@ -1,0 +1,16 @@
+services:
+  web:
+    image: nginx:1.27-alpine
+    container_name: tent-{{ site_slug }}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:{{ site_port }}:80"
+    volumes:
+      - ./www:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - tent
+
+networks:
+  tent:
+    external: true

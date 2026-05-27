@@ -1,5 +1,12 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import { cmdInit } from "./commands/init.js";
+import { cmdServerAdd, cmdServerList, cmdServerDestroy } from "./commands/server.js";
+import { cmdSiteNew, cmdSiteList, cmdSiteDestroy } from "./commands/site.js";
+import { cmdJobTail, cmdJobList } from "./commands/job.js";
+import { cmdTemplateList, cmdTemplateSync } from "./commands/template.js";
+import { cmdDoctor } from "./commands/doctor.js";
+import { cmdWorker } from "./commands/worker.js";
 
 const program = new Command();
 
@@ -11,76 +18,53 @@ program
 program
   .command("init")
   .description("first-time setup of the tent control plane on this box")
-  .action(() => {
-    console.log("tent init — not yet implemented (Phase 2)");
-  });
+  .action(cmdInit);
+
+program
+  .command("worker")
+  .description("run the job worker in the foreground (Ctrl-C to stop)")
+  .action(cmdWorker);
 
 const server = program.command("server").description("manage servers");
-
 server
   .command("add")
-  .description("provision or attach a server")
-  .action(() => {
-    console.log("tent server add — not yet implemented (Phase 2)");
-  });
+  .description("provision (cloud) or attach (self-hosted) a server")
+  .option("--no-wait", "return immediately, don't tail bootstrap progress")
+  .action((opts) => cmdServerAdd(opts));
+server.command("list").alias("ls").description("list managed servers").action(cmdServerList);
+server.command("destroy <id-or-name>").description("destroy a server (DESTRUCTIVE)").action(cmdServerDestroy);
 
-server
-  .command("list")
-  .description("list managed servers")
-  .action(() => {
-    console.log("tent server list — not yet implemented (Phase 2)");
-  });
-
-server
-  .command("bootstrap <id>")
-  .description("re-run bootstrap on an existing server")
-  .action((id: string) => {
-    console.log(`tent server bootstrap ${id} — not yet implemented (Phase 2)`);
-  });
-
-server
-  .command("destroy <id>")
-  .description("destroy a server (and the cloud VM behind it, if applicable)")
-  .action((id: string) => {
-    console.log(`tent server destroy ${id} — not yet implemented (Phase 2)`);
-  });
+program
+  .command("new-site <domain>")
+  .alias("ns")
+  .description("create + deploy a new site at the given domain")
+  .option("--no-wait", "return immediately, don't tail deploy progress")
+  .action((domain, opts) => cmdSiteNew(domain, opts));
 
 const site = program.command("site").description("manage sites");
-
 site
   .command("new <domain>")
-  .description("create a new site for the given domain")
-  .action((domain: string) => {
-    console.log(`tent site new ${domain} — not yet implemented (Phase 2)`);
-  });
-
+  .description("alias of `tent new-site <domain>`")
+  .option("--no-wait", "return immediately, don't tail deploy progress")
+  .action((domain, opts) => cmdSiteNew(domain, opts));
+site.command("list").alias("ls").description("list all sites").action(cmdSiteList);
 site
-  .command("list")
-  .description("list all sites")
-  .action(() => {
-    console.log("tent site list — not yet implemented (Phase 2)");
-  });
+  .command("destroy <slug-or-domain>")
+  .description("destroy a site (DESTRUCTIVE)")
+  .action(cmdSiteDestroy);
 
-site
-  .command("deploy <slug>")
-  .description("redeploy a site after template or env changes")
-  .action((slug: string) => {
-    console.log(`tent site deploy ${slug} — not yet implemented (Phase 2)`);
-  });
+const job = program.command("job").description("inspect jobs");
+job.command("tail <id>").description("stream a job's progress events").action(cmdJobTail);
+job.command("list").alias("ls").description("list recent jobs").action(cmdJobList);
 
-site
-  .command("destroy <slug>")
-  .description("destroy a site (DNS, tunnel route, app, and database)")
-  .action((slug: string) => {
-    console.log(`tent site destroy ${slug} — not yet implemented (Phase 2)`);
-  });
+const template = program.command("template").description("manage stack templates");
+template.command("list").alias("ls").description("list registered templates").action(cmdTemplateList);
+template.command("sync").description("re-scan packages/templates/ and upsert into the DB").action(cmdTemplateSync);
 
 program
   .command("doctor")
-  .description("sanity-check the control plane and all managed servers")
-  .action(() => {
-    console.log("tent doctor — not yet implemented (Phase 6)");
-  });
+  .description("sanity-check the control plane")
+  .action(cmdDoctor);
 
 program.parseAsync(process.argv).catch((err) => {
   console.error(err);

@@ -1,0 +1,39 @@
+---
+# Installs cloudflared and registers a per-server tunnel.
+# Expects tent_tunnel_id and tent_tunnel_token to be provided via --extra-vars by the control plane.
+
+- name: cloudflared — apt key
+  ansible.builtin.get_url:
+    url: https://pkg.cloudflare.com/cloudflare-main.gpg
+    dest: /usr/share/keyrings/cloudflare-main.gpg
+    mode: "0644"
+    force: false
+
+- name: cloudflared — apt repo
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared {{ ansible_distribution_release }} main"
+    filename: cloudflared
+    state: present
+
+- name: cloudflared — install
+  ansible.builtin.apt:
+    name: cloudflared
+    state: present
+    update_cache: true
+
+- name: cloudflared — install as service if a tunnel token was supplied
+  ansible.builtin.shell: |
+    cloudflared service uninstall || true
+    cloudflared service install {{ tent_tunnel_token | quote }}
+  args:
+    executable: /bin/bash
+  when: tent_tunnel_token is defined and tent_tunnel_token | length > 0
+  register: cf_install
+  changed_when: "'service is installed' in (cf_install.stdout | default('')) or cf_install.rc == 0"
+
+- name: cloudflared — enable + start
+  ansible.builtin.systemd:
+    name: cloudflared
+    enabled: true
+    state: started
+  when: tent_tunnel_token is defined and tent_tunnel_token | length > 0

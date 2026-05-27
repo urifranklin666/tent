@@ -55,6 +55,15 @@ export async function deleteTunnel(tunnelId: string): Promise<void> {
   });
 }
 
+/**
+ * Fetch the "connector token" that cloudflared on the target server uses to authenticate.
+ * For remotely-managed tunnels (config_src: "cloudflare"), this is the token passed to
+ * `cloudflared service install <token>`.
+ */
+export async function getTunnelToken(tunnelId: string): Promise<string> {
+  return cfCall<string>(`/accounts/${cfAccountId()}/cfd_tunnel/${tunnelId}/token`);
+}
+
 export async function getTunnelConfig(tunnelId: string): Promise<TunnelConfig | null> {
   const result = await cfCall<{ config?: TunnelConfig } | null>(
     `/accounts/${cfAccountId()}/cfd_tunnel/${tunnelId}/configurations`,

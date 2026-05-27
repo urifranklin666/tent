@@ -1,0 +1,21 @@
+---
+# Generic per-site deploy. The control plane invokes this with:
+#   --extra-vars site_slug=...
+#   --extra-vars site_domain=...
+#   --extra-vars site_port=...
+#   --extra-vars var_<name>=<value>   (one per template variable)
+# and sets ANSIBLE_ROLES_PATH to include the template's roles directory
+# so `name: site` resolves to packages/templates/<name>/roles/site.
+
+- name: tent — deploy site
+  hosts: managed
+  become: true
+  gather_facts: true
+
+  vars:
+    tent_operator_user: deadplug
+
+  tasks:
+    - name: include template's site role
+      ansible.builtin.include_role:
+        name: site

@@ -1,0 +1,72 @@
+---
+# Deploys a static-HTML site on the target server as an nginx container.
+# Required extra-vars (passed by tent):
+#   site_slug         — unique identifier for this site
+#   site_domain       — the public hostname
+#   site_port         — local TCP port the container will bind to on the host
+#   var_title         — variables from the template manifest, prefixed with var_
+#   var_headline
+#   var_tagline (optional)
+
+- name: site dir
+  ansible.builtin.file:
+    path: "/var/lib/tent/sites/{{ site_slug }}"
+    state: directory
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0755"
+
+- name: site web root
+  ansible.builtin.file:
+    path: "/var/lib/tent/sites/{{ site_slug }}/www"
+    state: directory
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0755"
+
+- name: render index.html
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: "/var/lib/tent/sites/{{ site_slug }}/www/index.html"
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0644"
+
+- name: render nginx.conf
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: "/var/lib/tent/sites/{{ site_slug }}/nginx.conf"
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0644"
+
+- name: render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "/var/lib/tent/sites/{{ site_slug }}/docker-compose.yml"
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0644"
+
+- name: docker compose — pull image
+  ansible.builtin.command:
+    cmd: docker compose pull
+    chdir: "/var/lib/tent/sites/{{ site_slug }}"
+  register: compose_pull
+  changed_when: "'Downloaded' in compose_pull.stdout or 'Pull complete' in compose_pull.stdout"
+
+- name: docker compose — up
+  ansible.builtin.command:
+    cmd: docker compose up -d --remove-orphans
+    chdir: "/var/lib/tent/sites/{{ site_slug }}"
+  register: compose_up
+  changed_when: "'Started' in compose_up.stdout or 'Created' in compose_up.stdout"
+
+- name: wait for container to respond
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ site_port }}/"
+    status_code: 200
+  register: probe
+  retries: 20
+  delay: 2
+  until: probe.status == 200

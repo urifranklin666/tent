@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ var_title }}</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #0a0908;
+        color: #e6e3df;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        text-align: center;
+        padding: 2rem;
+      }
+      .card {
+        max-width: 60ch;
+      }
+      h1 {
+        font-size: clamp(2.5rem, 7vw, 5rem);
+        letter-spacing: -0.03em;
+        margin: 0 0 0.5rem 0;
+        font-weight: 800;
+      }
+      p {
+        color: #8a857f;
+        font-size: 1.1rem;
+        margin: 0;
+      }
+      .mark {
+        display: inline-block;
+        margin-top: 3rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.75rem;
+        color: #4d4945;
+        border-top: 1px solid #2b0000;
+        padding-top: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>{{ var_headline }}</h1>
+      {% if var_tagline %}<p>{{ var_tagline }}</p>{% endif %}
+      <div class="mark">served by tent · {{ site_domain }}</div>
+    </main>
+  </body>
+</html>

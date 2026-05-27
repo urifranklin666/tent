@@ -1,0 +1,34 @@
+{
+  "name": "static",
+  "version": "1.0.0",
+  "description": "Single-page static HTML site served by nginx in a Docker container.",
+  "variables": {
+    "title": {
+      "type": "string",
+      "description": "Page title shown in the browser tab.",
+      "default": "untitled",
+      "optional": false
+    },
+    "headline": {
+      "type": "string",
+      "description": "Big text shown on the page.",
+      "default": "hello from tent",
+      "optional": false
+    },
+    "tagline": {
+      "type": "string",
+      "description": "Smaller text under the headline.",
+      "default": "this site was deployed in one command",
+      "optional": true
+    }
+  },
+  "requires": {
+    "docker": true,
+    "postgres": false,
+    "nodejs": false
+  },
+  "ports": {
+    "internal": 80
+  },
+  "healthCheckPath": "/"
+}

@@ -1,0 +1,30 @@
+---
+# Tears down a site on the target server: docker compose down, removes /var/lib/tent/sites/<slug>.
+- name: tent — destroy site
+  hosts: managed
+  become: true
+  gather_facts: false
+
+  vars:
+    tent_operator_user: deadplug
+
+  tasks:
+    - name: check whether site dir exists
+      ansible.builtin.stat:
+        path: "/var/lib/tent/sites/{{ site_slug }}"
+      register: site_dir
+
+    - name: docker compose — down
+      ansible.builtin.command:
+        cmd: docker compose down -v --remove-orphans
+        chdir: "/var/lib/tent/sites/{{ site_slug }}"
+      when: site_dir.stat.exists
+      register: compose_down
+      failed_when: false
+      changed_when: compose_down.rc == 0
+
+    - name: remove site directory
+      ansible.builtin.file:
+        path: "/var/lib/tent/sites/{{ site_slug }}"
+        state: absent
+      when: site_dir.stat.exists

@@ -1,0 +1,146 @@
+---
+- name: apt — update cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: apt — install baseline packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - software-properties-common
+      - ufw
+      - fail2ban
+      - unattended-upgrades
+      - git
+      - jq
+      - htop
+      - vim
+      - python3
+      - python3-pip
+      - rsync
+      - unzip
+      - tzdata
+    state: present
+
+- name: timezone — set to UTC
+  community.general.timezone:
+    name: UTC
+
+- name: user — operator account
+  ansible.builtin.user:
+    name: "{{ tent_operator_user }}"
+    shell: /bin/bash
+    groups: sudo
+    append: true
+    create_home: true
+    state: present
+
+- name: sudoers — operator passwordless sudo
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/90-{{ tent_operator_user }}"
+    content: "{{ tent_operator_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    mode: "0440"
+    validate: "visudo -cf %s"
+
+- name: ssh — harden sshd
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-tent.conf
+    content: |
+      PermitRootLogin prohibit-password
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      ChallengeResponseAuthentication no
+      X11Forwarding no
+      AllowTcpForwarding yes
+      ClientAliveInterval 60
+      ClientAliveCountMax 3
+    mode: "0644"
+  notify: restart sshd
+
+- name: ufw — default policies
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming
+
+- name: ufw — allow ssh
+  community.general.ufw:
+    rule: allow
+    name: OpenSSH
+
+- name: ufw — allow outgoing
+  community.general.ufw:
+    direction: outgoing
+    policy: allow
+
+- name: fail2ban — enable + start
+  ansible.builtin.systemd:
+    name: fail2ban
+    enabled: true
+    state: started
+
+- name: unattended upgrades — enable
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+      APT::Periodic::AutocleanInterval "7";
+    mode: "0644"
+
+- name: swap — check if file exists
+  ansible.builtin.stat:
+    path: /swapfile
+  register: swapfile_stat
+
+- name: swap — create swap file
+  ansible.builtin.command:
+    cmd: "fallocate -l {{ tent_swap_size_mb }}M /swapfile"
+    creates: /swapfile
+  when: not swapfile_stat.stat.exists
+
+- name: swap — permissions
+  ansible.builtin.file:
+    path: /swapfile
+    mode: "0600"
+
+- name: swap — format
+  ansible.builtin.command:
+    cmd: "mkswap /swapfile"
+  when: not swapfile_stat.stat.exists
+  register: mkswap_out
+  changed_when: "'Setting up swapspace' in mkswap_out.stdout"
+
+- name: swap — enable
+  ansible.builtin.command:
+    cmd: "swapon /swapfile"
+  when: not swapfile_stat.stat.exists
+  register: swapon_out
+  changed_when: swapon_out.rc == 0
+  failed_when: swapon_out.rc != 0 and 'already' not in (swapon_out.stderr | default(''))
+
+- name: swap — persist in fstab
+  ansible.posix.mount:
+    src: /swapfile
+    path: none
+    fstype: swap
+    opts: sw
+    dump: "0"
+    passno: "0"
+    state: present
+
+- name: directories — tent runtime
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0755"
+  loop:
+    - /var/lib/tent
+    - /var/lib/tent/sites
+    - /var/lib/tent/backups

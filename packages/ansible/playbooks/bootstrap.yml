@@ -1,0 +1,17 @@
+---
+# Baseline bootstrap for any fresh Ubuntu/Debian server.
+# Idempotent — safe to re-run.
+- name: tent — server bootstrap
+  hosts: managed
+  become: true
+  gather_facts: true
+
+  vars:
+    tent_operator_user: deadplug
+    tent_swap_size_mb: 2048
+
+  roles:
+    - common
+    - docker
+    - cloudflared
+    - nodejs
