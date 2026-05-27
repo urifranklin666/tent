@@ -1,5 +1,11 @@
-import sodium from "libsodium-wrappers";
+import { createRequire } from "node:module";
+import type SodiumNamespace from "libsodium-wrappers";
 import { getMasterKey } from "../env.js";
+
+// libsodium-wrappers ships a broken ESM entry (its .mjs imports a non-existent
+// sibling). Force CJS resolution to get the working bundled build.
+const require = createRequire(import.meta.url);
+const sodium = require("libsodium-wrappers") as typeof SodiumNamespace;
 
 let ready: Promise<void> | undefined;
 

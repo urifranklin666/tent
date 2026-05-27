@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import "./globals.css";
 
 export const metadata = {
   title: "tent",
@@ -8,16 +9,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body
-        style={{
-          margin: 0,
-          background: "#0a0908",
-          color: "#e6e3df",
-          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-        }}
-      >
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
