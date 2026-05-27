@@ -1,0 +1,19 @@
+[Unit]
+Description=tent web control panel
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=deadplug
+Group=deadplug
+WorkingDirectory=/home/deadplug/tent/apps/web
+EnvironmentFile=/etc/tent/env
+ExecStart=/usr/bin/node .next/standalone/server.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

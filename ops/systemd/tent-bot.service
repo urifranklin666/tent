@@ -1,0 +1,18 @@
+[Unit]
+Description=tent Discord bot
+After=network.target tent-web.service
+
+[Service]
+Type=simple
+User=deadplug
+Group=deadplug
+WorkingDirectory=/home/deadplug/tent/apps/bot
+EnvironmentFile=/etc/tent/env
+ExecStart=/usr/bin/node dist/main.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

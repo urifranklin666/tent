@@ -1,0 +1,19 @@
+[Unit]
+Description=tent job worker
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=deadplug
+Group=deadplug
+WorkingDirectory=/home/deadplug/tent/packages/core
+EnvironmentFile=/etc/tent/env
+ExecStart=/usr/bin/node dist/jobs/worker.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
