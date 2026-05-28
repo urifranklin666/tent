@@ -8,7 +8,7 @@
     "dev": "next dev --port 3030",
     "start": "next start --port 3030",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf .next .tsbuildinfo"
+    "clean": "rm -rf .next tsconfig.tsbuildinfo"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.0",

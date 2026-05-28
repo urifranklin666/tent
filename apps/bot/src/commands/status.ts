@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, MessageFlags } from "discord.js";
+import { SlashCommandBuilder } from "discord.js";
 import { sql } from "drizzle-orm";
 import { getDb, jobs, ServerService, SiteService } from "@tent/core";
 import type { TentCommand } from "./types.js";
@@ -10,8 +10,6 @@ export const statusCommand: TentCommand = {
     .setDescription("show counts of servers, sites, and jobs"),
 
   async run({ interaction }) {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
     const db = getDb();
     const [servers, sites, jobRows] = await Promise.all([
       ServerService.list(),

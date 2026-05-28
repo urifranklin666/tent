@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, MessageFlags } from "discord.js";
+import { SlashCommandBuilder } from "discord.js";
 import { ServerService, SiteService } from "@tent/core";
 import type { TentCommand } from "./types.js";
 
@@ -15,7 +15,6 @@ export const listCommand: TentCommand = {
     ),
 
   async run({ interaction }) {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const sub = interaction.options.getSubcommand();
 
     if (sub === "servers") {

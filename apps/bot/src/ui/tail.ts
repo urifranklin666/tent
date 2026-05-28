@@ -2,13 +2,16 @@ import type { ChatInputCommandInteraction } from "discord.js";
 import { getJob, type JobProgressEvent, type JobState } from "@tent/core";
 
 const POLL_MS = 1200;
-const MAX_DURATION_MS = 30 * 60 * 1000;
+// Discord webhook tokens expire 15 min after the interaction. Stop tailing
+// just shy of that so the final editReply succeeds.
+const MAX_DURATION_MS = 14 * 60 * 1000 + 30 * 1000;
 const MSG_BUDGET = 1800;
+const LINE_BUDGET = 240; // per-line cap so the trim loop always converges
 const TERMINAL = new Set<JobState>(["succeeded", "failed", "canceled"]);
 
 /**
  * Polls a job and edits the deferred reply with rolling progress events
- * until the job hits a terminal state or MAX_DURATION_MS elapses.
+ * until the job hits a terminal state or the webhook token nears expiry.
  *
  * Assumes the caller already called interaction.deferReply().
  */
@@ -16,20 +19,21 @@ export async function tailJobIntoInteraction(
   interaction: ChatInputCommandInteraction,
   jobId: string,
   opts: { title: string },
-): Promise<JobState | "timeout"> {
+): Promise<JobState | "timeout" | "lost"> {
   const started = Date.now();
   let lastRender = "";
 
   while (Date.now() - started < MAX_DURATION_MS) {
     const job = await getJob(jobId);
     if (!job) {
-      await interaction.editReply(`✗ job ${jobId} disappeared`);
+      await safeEdit(interaction, `✗ job ${jobId} disappeared`);
       return "failed";
     }
 
     const body = render(opts.title, jobId, job.state, job.progress ?? [], job.error);
     if (body !== lastRender) {
-      await interaction.editReply(body);
+      const ok = await safeEdit(interaction, body);
+      if (!ok) return "lost"; // webhook token dead — stop tailing
       lastRender = body;
     }
 
@@ -37,8 +41,23 @@ export async function tailJobIntoInteraction(
     await sleep(POLL_MS);
   }
 
-  await interaction.editReply(lastRender + "\n— stopped tailing after 30 min —");
+  await safeEdit(
+    interaction,
+    lastRender + "\n— stopped tailing; check `/tent-list` for final state —",
+  );
   return "timeout";
+}
+
+async function safeEdit(
+  interaction: ChatInputCommandInteraction,
+  content: string,
+): Promise<boolean> {
+  try {
+    await interaction.editReply(content);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function render(
@@ -60,8 +79,9 @@ function render(
     return head + "\n```\nwaiting for output…\n```";
   }
 
-  const lines = events.map(paint);
-  // Trim the head of the list so we fit in the Discord message budget.
+  // Cap individual lines first so a single huge stdout chunk can't blow the
+  // budget on its own. Then trim the head of the list to fit the rest.
+  const lines = events.map((ev) => truncate(paint(ev), LINE_BUDGET));
   let body = lines.join("\n");
   if (body.length > MSG_BUDGET) {
     while (body.length > MSG_BUDGET && lines.length > 1) {

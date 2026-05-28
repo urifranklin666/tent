@@ -39,11 +39,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => {
   // discordId/role fields that the default adapter doesn't populate.
   // The signIn callback has already gated against the allowlist, so
   // any user reaching createUser is an admin by design.
+  // If the bot already inserted a row for this Discord id, return that
+  // instead — otherwise we'd hit a UNIQUE violation on discord_id.
   const adapter: Adapter = {
     ...baseAdapter,
     async createUser(data) {
-      const id = data.id ?? randomUUID();
       const discordId = data.id ?? null; // Discord profile.id passes through as data.id
+      if (discordId) {
+        const existing = await db
+          .select()
+          .from(users)
+          .where(eq(users.discordId, discordId))
+          .limit(1);
+        if (existing[0]) {
+          // Backfill any web-only fields that the bot didn't have access to.
+          const patch: Partial<typeof users.$inferInsert> = {};
+          if (data.name && !existing[0].name) patch.name = data.name;
+          if (data.email && !existing[0].email) patch.email = data.email;
+          if (data.image && !existing[0].image) patch.image = data.image;
+          if (data.emailVerified && !existing[0].emailVerified) {
+            patch.emailVerified = data.emailVerified;
+          }
+          if (Object.keys(patch).length > 0) {
+            await db.update(users).set(patch).where(eq(users.id, existing[0].id));
+          }
+          return existing[0] as unknown as AdapterUser;
+        }
+      }
+
+      const id = data.id ?? randomUUID();
       const handle = data.name ?? data.email?.split("@")[0] ?? discordId ?? id;
       const inserted = await db
         .insert(users)

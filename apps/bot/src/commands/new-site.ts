@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, MessageFlags } from "discord.js";
+import { SlashCommandBuilder } from "discord.js";
 import {
   ServerService,
   SiteService,
@@ -25,7 +25,6 @@ export const newSiteCommand: TentCommand = {
     ),
 
   async run({ interaction, user }) {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     registerAllHandlers();
 
     const domain = interaction.options.getString("domain", true).trim().toLowerCase();

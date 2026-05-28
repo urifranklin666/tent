@@ -60,7 +60,6 @@ export const serverAddCommand: TentCommand = {
     ),
 
   async run({ interaction, user }) {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     registerAllHandlers();
 
     const provider = interaction.options.getString("provider", true) as

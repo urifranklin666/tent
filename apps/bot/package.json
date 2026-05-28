@@ -9,7 +9,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/main.js",
     "register": "tsx src/register.ts",
-    "clean": "rm -rf dist .tsbuildinfo"
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
     "@tent/core": "workspace:*",

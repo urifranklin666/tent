@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, MessageFlags } from "discord.js";
+import { SlashCommandBuilder } from "discord.js";
 import { SiteService, registerAllHandlers } from "@tent/core";
 import type { TentCommand } from "./types.js";
 import { tailJobIntoInteraction } from "../ui/tail.js";
@@ -16,7 +16,6 @@ export const deployCommand: TentCommand = {
     ),
 
   async run({ interaction, user }) {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     registerAllHandlers();
 
     const input = interaction.options.getString("site", true);

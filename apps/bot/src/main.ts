@@ -19,21 +19,26 @@ client.once(Events.ClientReady, (c) => {
 
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
+
+  // Defer immediately. Discord requires a first response within 3s, and
+  // auth + cold pg pool init can blow that budget. After deferring we have
+  // a 15-min webhook window for editReply/followUp.
+  try {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  } catch (err) {
+    log.error("deferReply failed", { err: String(err) });
+    return;
+  }
+
   const cmd = commands.find((c) => c.data.name === interaction.commandName);
   if (!cmd) {
-    await interaction.reply({
-      content: `unknown command: ${interaction.commandName}`,
-      flags: MessageFlags.Ephemeral,
-    });
+    await interaction.editReply(`unknown command: ${interaction.commandName}`);
     return;
   }
 
   const auth = await requireRoleFromDiscord(interaction.user.id, cmd.minRole);
   if (!auth.ok) {
-    await interaction.reply({
-      content: `access denied — ${auth.reason}`,
-      flags: MessageFlags.Ephemeral,
-    });
+    await interaction.editReply(`access denied — ${auth.reason}`);
     return;
   }
 
@@ -42,10 +47,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
   } catch (err) {
     log.error("command failed", { err: String(err), cmd: interaction.commandName });
     const message = `error: ${err instanceof Error ? err.message : String(err)}`;
-    if (interaction.deferred || interaction.replied) {
-      await interaction.followUp({ content: message, flags: MessageFlags.Ephemeral });
-    } else {
-      await interaction.reply({ content: message, flags: MessageFlags.Ephemeral });
+    try {
+      await interaction.editReply(message);
+    } catch {
+      // Webhook token may already be dead (>15min). Nothing we can do.
     }
   }
 });
