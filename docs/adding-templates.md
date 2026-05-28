@@ -88,9 +88,17 @@ The `healthCheckPath` declared in your manifest is a hint for future health-moni
 
 ## Backup contract
 
-(Phase 6.) Future templates will write per-site backup scripts into `/var/lib/tent/backups/<slug>/backup.sh` that the control plane runs on a schedule. Current templates do not implement backups.
+**Today (Phase 5): destroy is total.** `site-destroy.yml` runs `docker compose down -v --remove-orphans` and then removes `/var/lib/tent/sites/<slug>` outright. That means:
 
-WordPress operators wanting backups today should `docker exec` into the db container and `mariadb-dump`, or use a plugin like UpdraftPlus.
+- All containers stop and are deleted.
+- **Every named volume declared in your compose is dropped** (the `-v`). For the WordPress template that includes the MariaDB volume.
+- **Every host-bind directory under the site dir is wiped** when the site dir is removed. WordPress's `./wp-content` is inside the site dir.
+
+So destroying a WordPress site (or anything with data inside `/var/lib/tent/sites/<slug>/`) is irreversible without an external backup. The web/CLI/bot all require typed confirmation to destroy, which is the only guard in place. Don't destroy a production site you can't rebuild from scratch.
+
+**Phase 6** will add scheduled per-site backups (pg_dump / mariadb-dump / uploads tarball, replicated off-site) and templates will be expected to drop a `backup.sh` into `/var/lib/tent/backups/<slug>/`.
+
+WordPress operators wanting backups today should `docker exec` into the db container and `mariadb-dump`, or use a plugin like UpdraftPlus pointed at off-site storage.
 
 ## Idempotency
 

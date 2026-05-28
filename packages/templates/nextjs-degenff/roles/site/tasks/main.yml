@@ -22,6 +22,7 @@
     version: "{{ var_git_ref }}"
     force: true
   become_user: "{{ tent_operator_user }}"
+  no_log: true  # var_git_repo may embed a deploy token
 
 - name: env — download .env.production (if URL provided)
   ansible.builtin.get_url:

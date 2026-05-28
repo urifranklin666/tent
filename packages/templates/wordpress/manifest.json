@@ -1,7 +1,7 @@
 {
   "name": "wordpress",
   "version": "1.0.0",
-  "description": "WordPress + MariaDB via Docker Compose. Uploads persist on the host; database lives in a docker volume.",
+  "description": "WordPress + MariaDB via Docker Compose. Note: destroy removes both the wp-content host directory and the db volume — there is no automated backup until Phase 6. Don't destroy a real WP site without an external backup.",
   "variables": {
     "site_title": {
       "type": "string",

@@ -11,7 +11,6 @@ services:
     volumes:
       - tent-{{ site_slug }}-db:/var/lib/mysql
     networks:
-      - tent
       - site
 
   web:

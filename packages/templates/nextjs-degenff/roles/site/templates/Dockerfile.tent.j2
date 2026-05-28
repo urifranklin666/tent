@@ -1,6 +1,7 @@
 # Stock tent Dockerfile for Next.js apps. Auto-detects the package manager.
-# Lives at .Dockerfile.tent so it doesn't conflict with any Dockerfile the
-# repo ships of its own.
+# Written to Dockerfile.tent (not "Dockerfile") so it doesn't conflict with
+# any Dockerfile the repo ships of its own; the compose file references
+# this filename explicitly.
 
 FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat
