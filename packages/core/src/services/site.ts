@@ -112,6 +112,28 @@ export const SiteService = {
     return { jobId: job.id };
   },
 
+  async backup(
+    id: string,
+    opts: { createdBy?: string; retentionCount?: number } = {},
+  ): Promise<{ jobId: string }> {
+    const job = await enqueueJob({
+      kind: "site.backup",
+      params: {
+        siteId: id,
+        ...(opts.retentionCount !== undefined ? { retentionCount: opts.retentionCount } : {}),
+      },
+      createdBy: opts.createdBy ?? null,
+    });
+    await AuditService.record({
+      actorKind: "user",
+      actorUserId: opts.createdBy ?? null,
+      action: "site.backup",
+      targetKind: "site",
+      targetId: id,
+    });
+    return { jobId: job.id };
+  },
+
   async destroy(id: string, opts: { createdBy?: string } = {}): Promise<{ jobId: string }> {
     await getDb().update(sites).set({ status: "destroying", updatedAt: new Date() }).where(eq(sites.id, id));
     const job = await enqueueJob({

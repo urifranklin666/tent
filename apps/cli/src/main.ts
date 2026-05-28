@@ -5,6 +5,7 @@ import { cmdServerAdd, cmdServerList, cmdServerDestroy } from "./commands/server
 import { cmdSiteNew, cmdSiteList, cmdSiteDestroy } from "./commands/site.js";
 import { cmdJobTail, cmdJobList } from "./commands/job.js";
 import { cmdTemplateList, cmdTemplateSync } from "./commands/template.js";
+import { cmdBackupRun } from "./commands/backup.js";
 import { cmdDoctor } from "./commands/doctor.js";
 import { cmdWorker } from "./commands/worker.js";
 
@@ -60,6 +61,13 @@ job.command("list").alias("ls").description("list recent jobs").action(cmdJobLis
 const template = program.command("template").description("manage stack templates");
 template.command("list").alias("ls").description("list registered templates").action(cmdTemplateList);
 template.command("sync").description("re-scan packages/templates/ and upsert into the DB").action(cmdTemplateSync);
+
+const backup = program.command("backup").description("snapshot a site's state");
+backup
+  .command("run <slug-or-domain>")
+  .description("enqueue a backup job for the given site")
+  .option("--no-wait", "return immediately, don't tail backup progress")
+  .action((target, opts) => cmdBackupRun(target, opts));
 
 program
   .command("doctor")

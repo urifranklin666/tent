@@ -48,6 +48,7 @@ export const jobKinds = [
   "site.deploy",
   "site.redeploy",
   "site.destroy",
+  "site.backup",
   "template.sync",
   "doctor.run",
 ] as const;

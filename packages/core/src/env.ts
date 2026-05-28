@@ -21,6 +21,7 @@ const EnvSchema = z.object({
   DISCORD_BOT_TOKEN: z.string().optional(),
   DISCORD_GUILD_ID: z.string().optional(),
   DISCORD_ADMIN_USER_IDS: z.string().optional(),
+  DISCORD_NOTIFY_WEBHOOK_URL: z.string().url().optional(),
 
   AUTH_SECRET: z.string().optional(),
   AUTH_URL: z.string().url().optional(),

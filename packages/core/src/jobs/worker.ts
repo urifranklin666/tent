@@ -2,6 +2,7 @@ import { getEnv } from "../env.js";
 import { logger } from "../logger.js";
 import { progressEvent } from "@tent/shared";
 import { getJobHandler } from "./handlers.js";
+import { touchWorkerHeartbeat, notifyDiscord } from "../monitoring.js";
 import {
   appendProgress,
   claimNextJob,
@@ -29,6 +30,8 @@ export async function runWorkerLoop(opts: WorkerOptions = {}): Promise<void> {
   const inFlight = new Set<Promise<void>>();
   const abortSignal = opts.signal ?? new AbortController().signal;
 
+  await touchWorkerHeartbeat();
+
   while (!abortSignal.aborted) {
     while (inFlight.size < concurrency) {
       const job = await claimNextJob();
@@ -40,6 +43,7 @@ export async function runWorkerLoop(opts: WorkerOptions = {}): Promise<void> {
         });
       inFlight.add(task);
     }
+    await touchWorkerHeartbeat();
     if (inFlight.size === 0) {
       await sleep(IDLE_POLL_MS, abortSignal);
     } else {
@@ -106,6 +110,11 @@ async function processJob(
     } else {
       await markFailed(jobId, message);
       log.error("job failed permanently", { attempt });
+      void notifyDiscord(
+        `✗ job \`${kind}\` failed after ${attempt} attempts\n` +
+          `job id: \`${jobId}\`\n` +
+          `error: ${message.slice(0, 800)}`,
+      );
     }
   } finally {
     parentSignal.removeEventListener("abort", onParent);

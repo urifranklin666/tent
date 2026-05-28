@@ -1,0 +1,105 @@
+---
+# Snapshots a site's persistent state into /var/lib/tent/backups/<slug>/<ts>.tar.gz.
+# If the template ships /var/lib/tent/sites/<slug>/backup.sh, that script runs
+# first and is expected to dump live state (mysqldump, pg_dump, etc.) into
+# /var/lib/tent/sites/<slug>/.backup/.
+#
+# Required extra-vars:
+#   site_slug
+# Optional:
+#   retention_count   — how many tarballs to keep; older ones are deleted (default 7)
+
+- name: tent — backup site
+  hosts: managed
+  become: true
+  gather_facts: false
+
+  vars:
+    tent_operator_user: deadplug
+    retention_count: "{{ retention_count | default(7) | int }}"
+    timestamp: "{{ ansible_date_time.iso8601_basic_short | default(lookup('pipe','date -u +%Y%m%dT%H%M%SZ')) }}"
+
+  tasks:
+    - name: gather a fresh timestamp
+      ansible.builtin.set_fact:
+        backup_ts: "{{ lookup('pipe', 'date -u +%Y%m%dT%H%M%SZ') }}"
+
+    - name: ensure site exists
+      ansible.builtin.stat:
+        path: "/var/lib/tent/sites/{{ site_slug }}"
+      register: site_dir
+      failed_when: not site_dir.stat.exists
+
+    - name: ensure backup output dir
+      ansible.builtin.file:
+        path: "/var/lib/tent/backups/{{ site_slug }}"
+        state: directory
+        owner: "{{ tent_operator_user }}"
+        group: "{{ tent_operator_user }}"
+        mode: "0700"
+
+    - name: clear stale .backup workdir
+      ansible.builtin.file:
+        path: "/var/lib/tent/sites/{{ site_slug }}/.backup"
+        state: absent
+
+    - name: prepare .backup workdir
+      ansible.builtin.file:
+        path: "/var/lib/tent/sites/{{ site_slug }}/.backup"
+        state: directory
+        owner: "{{ tent_operator_user }}"
+        group: "{{ tent_operator_user }}"
+        mode: "0700"
+
+    - name: probe for template-supplied backup.sh
+      ansible.builtin.stat:
+        path: "/var/lib/tent/sites/{{ site_slug }}/backup.sh"
+      register: backup_script
+
+    - name: run template's backup.sh (if present)
+      ansible.builtin.command:
+        cmd: bash /var/lib/tent/sites/{{ site_slug }}/backup.sh
+        chdir: "/var/lib/tent/sites/{{ site_slug }}"
+      environment:
+        SITE_SLUG: "{{ site_slug }}"
+        BACKUP_DIR: "/var/lib/tent/sites/{{ site_slug }}/.backup"
+      when: backup_script.stat.exists
+      register: backup_run
+      changed_when: backup_run.rc == 0
+
+    - name: tarball the site dir
+      ansible.builtin.command:
+        cmd: >-
+          tar
+          --exclude='./src/node_modules'
+          --exclude='./src/.next'
+          --exclude='./src/.git'
+          -czf /var/lib/tent/backups/{{ site_slug }}/{{ backup_ts }}.tar.gz .
+        chdir: "/var/lib/tent/sites/{{ site_slug }}"
+      register: tarball
+      changed_when: tarball.rc == 0
+
+    - name: chown backup tarball to operator
+      ansible.builtin.file:
+        path: "/var/lib/tent/backups/{{ site_slug }}/{{ backup_ts }}.tar.gz"
+        owner: "{{ tent_operator_user }}"
+        group: "{{ tent_operator_user }}"
+        mode: "0600"
+
+    - name: tear down .backup workdir
+      ansible.builtin.file:
+        path: "/var/lib/tent/sites/{{ site_slug }}/.backup"
+        state: absent
+
+    - name: list backups (newest first)
+      ansible.builtin.shell: |
+        ls -1t /var/lib/tent/backups/{{ site_slug }}/*.tar.gz 2>/dev/null
+      register: backup_list
+      changed_when: false
+      failed_when: false
+
+    - name: prune old backups beyond retention
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ (backup_list.stdout_lines | default([]))[retention_count | int:] }}"

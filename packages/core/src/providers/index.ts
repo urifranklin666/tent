@@ -2,11 +2,14 @@ import type { ServerProvider } from "@tent/shared";
 import type { VpsProvider } from "./base.js";
 import { selfhostedProvider } from "./selfhosted.js";
 import { hetznerProvider } from "./hetzner.js";
+import { digitaloceanProvider } from "./digitalocean.js";
+import { vultrProvider } from "./vultr.js";
 
 const registry = new Map<ServerProvider, VpsProvider>();
 registry.set("selfhosted", selfhostedProvider);
 registry.set("hetzner", hetznerProvider);
-// DigitalOcean + Vultr land in Phase 6.
+registry.set("digitalocean", digitaloceanProvider);
+registry.set("vultr", vultrProvider);
 
 export function registerProvider(provider: VpsProvider): void {
   registry.set(provider.id, provider);

@@ -25,6 +25,14 @@ export * from "./jobs/index.js";
 export { registerAllHandlers } from "./jobs/handlers/index.js";
 export { ensurePrivateKeyFile } from "./keyfile.js";
 export { allocateSitePort } from "./ports.js";
+export {
+  touchWorkerHeartbeat,
+  readHeartbeatAge,
+  workerHeartbeatPath,
+  notifyDiscord,
+  probeCloudflareToken,
+  probeBearer,
+} from "./monitoring.js";
 
 export { ServerService, type AddServerInput } from "./services/server.js";
 export { SiteService, type CreateSiteInput } from "./services/site.js";

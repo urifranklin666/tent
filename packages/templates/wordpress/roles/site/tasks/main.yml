@@ -31,6 +31,14 @@
     mode: "0600"
     no_log: true
 
+- name: backup — install backup.sh
+  ansible.builtin.copy:
+    src: backup.sh
+    dest: "/var/lib/tent/sites/{{ site_slug }}/backup.sh"
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0750"
+
 - name: docker compose — pull images
   ansible.builtin.command:
     cmd: docker compose pull

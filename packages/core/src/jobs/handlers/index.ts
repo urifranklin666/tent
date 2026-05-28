@@ -3,6 +3,7 @@ import { registerServerBootstrapHandler } from "./server-bootstrap.js";
 import { registerServerDestroyHandler } from "./server-destroy.js";
 import { registerSiteDeployHandler } from "./site-deploy.js";
 import { registerSiteDestroyHandler } from "./site-destroy.js";
+import { registerSiteBackupHandler } from "./site-backup.js";
 
 let registered = false;
 
@@ -17,4 +18,5 @@ export function registerAllHandlers(): void {
   registerServerDestroyHandler();
   registerSiteDeployHandler();
   registerSiteDestroyHandler();
+  registerSiteBackupHandler();
 }
