@@ -26,6 +26,9 @@ importers:
       discord.js:
         specifier: ^14.16.0
         version: 14.26.4
+      drizzle-orm:
+        specifier: ^0.45.0
+        version: 0.45.2(@types/pg@8.20.0)(gel@2.2.0)(pg@8.21.0)
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

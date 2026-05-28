@@ -8,12 +8,14 @@
     "dev": "tsx watch src/main.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/main.js",
+    "register": "tsx src/register.ts",
     "clean": "rm -rf dist .tsbuildinfo"
   },
   "dependencies": {
     "@tent/core": "workspace:*",
     "@tent/shared": "workspace:*",
-    "discord.js": "^14.16.0"
+    "discord.js": "^14.16.0",
+    "drizzle-orm": "^0.45.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
