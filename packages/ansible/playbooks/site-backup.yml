@@ -16,8 +16,9 @@
 
   vars:
     tent_operator_user: deadplug
-    retention_count: "{{ retention_count | default(7) | int }}"
-    timestamp: "{{ ansible_date_time.iso8601_basic_short | default(lookup('pipe','date -u +%Y%m%dT%H%M%SZ')) }}"
+    # Resolve under a different name so the play var doesn't recursively
+    # reference itself when the operator passes --extra-vars retention_count=N.
+    tent_retention: "{{ retention_count | default(7) | int }}"
 
   tasks:
     - name: gather a fresh timestamp
@@ -102,4 +103,4 @@
       ansible.builtin.file:
         path: "{{ item }}"
         state: absent
-      loop: "{{ (backup_list.stdout_lines | default([]))[retention_count | int:] }}"
+      loop: "{{ (backup_list.stdout_lines | default([]))[tent_retention | int:] }}"

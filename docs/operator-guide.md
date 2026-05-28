@@ -212,7 +212,7 @@ Common failures:
 - **`Server X has no Cloudflare tunnel`** — bootstrap didn't finish. Re-run server bootstrap.
 - **`No Cloudflare zone owns example.com`** — you have to add the zone to Cloudflare first.
 - **`ansible-playbook exited with code 4`** — SSH connection refused. Usually means the server's IP changed or the firewall is dropping you. SSH manually to confirm.
-- **`probe.status not in [...]`** — the container is running but isn't responding on `127.0.0.1:<site_port>`. Usually a misconfigured template variable. `docker logs tent-<slug>` on the target server.
+- **`probe.status not in [...]`** — the container is running but isn't responding on `127.0.0.1:<site_port>`. Usually a misconfigured template variable. Container names are template-specific: `tent-<slug>` for `static` and `nextjs-degenff`, `tent-<slug>-wp` + `tent-<slug>-db` for `wordpress`, whatever the operator's compose declares for `docker-compose`. SSH to the server, `docker ps` to find the right name, then `docker logs <name>`.
 
 ### `permission denied (publickey)` from any ansible task
 

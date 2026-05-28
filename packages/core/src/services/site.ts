@@ -109,6 +109,13 @@ export const SiteService = {
       params: { siteId: id },
       createdBy: opts.createdBy ?? null,
     });
+    await AuditService.record({
+      actorKind: "user",
+      actorUserId: opts.createdBy ?? null,
+      action: "site.redeploy",
+      targetKind: "site",
+      targetId: id,
+    });
     return { jobId: job.id };
   },
 

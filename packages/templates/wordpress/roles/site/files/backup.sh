@@ -22,12 +22,21 @@ if ! docker ps --format '{{.Names}}' | grep -qx "${DB_CONTAINER}"; then
   exit 0
 fi
 
+# Resolve the wordpress db password. Prefer an env var passed by the caller;
+# fall back to extracting from the rendered docker-compose.yml. Either way,
+# pass it via MYSQL_PWD instead of --password=<value> so the password does
+# NOT show up in `ps aux` on the host while the dump is running.
+DB_PASSWORD="${WORDPRESS_DB_PASSWORD:-$(grep -m1 MARIADB_PASSWORD "/var/lib/tent/sites/${SITE_SLUG}/docker-compose.yml" | sed -E 's/.*"(.*)"/\1/')}"
+if [[ -z "${DB_PASSWORD}" ]]; then
+  echo "backup.sh: failed to resolve mariadb password for ${SITE_SLUG}" >&2
+  exit 1
+fi
+
 # mariadb-dump --single-transaction gives a consistent snapshot of InnoDB
 # tables without locking. The wordpress user owns the wordpress database.
-docker exec "${DB_CONTAINER}" \
+docker exec -e MYSQL_PWD="${DB_PASSWORD}" "${DB_CONTAINER}" \
   mariadb-dump \
   --user=wordpress \
-  --password="${WORDPRESS_DB_PASSWORD:-$(grep -m1 MARIADB_PASSWORD /var/lib/tent/sites/${SITE_SLUG}/docker-compose.yml | sed -E 's/.*"(.*)"/\1/')}" \
   --single-transaction \
   --routines \
   --triggers \
