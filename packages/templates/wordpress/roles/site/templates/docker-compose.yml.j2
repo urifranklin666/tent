@@ -1,0 +1,52 @@
+services:
+  db:
+    image: mariadb:11
+    container_name: tent-{{ site_slug }}-db
+    restart: unless-stopped
+    environment:
+      MARIADB_RANDOM_ROOT_PASSWORD: "yes"
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: "{{ var_db_password }}"
+    volumes:
+      - tent-{{ site_slug }}-db:/var/lib/mysql
+    networks:
+      - tent
+      - site
+
+  web:
+    image: wordpress:6.7-apache
+    container_name: tent-{{ site_slug }}-wp
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "127.0.0.1:{{ site_port }}:80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: "{{ var_db_password }}"
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_TABLE_PREFIX: wp_
+      WORDPRESS_CONFIG_EXTRA: |
+        define( 'WP_HOME',    'https://{{ site_domain }}' );
+        define( 'WP_SITEURL', 'https://{{ site_domain }}' );
+        define( 'FORCE_SSL_ADMIN', true );
+        if ( ! empty( $$_SERVER['HTTP_X_FORWARDED_PROTO'] ) && $$_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https' ) {
+          $$_SERVER['HTTPS'] = 'on';
+        }
+    volumes:
+      - ./wp-content:/var/www/html/wp-content
+    networks:
+      - tent
+      - site
+
+networks:
+  tent:
+    external: true
+  site:
+    driver: bridge
+
+volumes:
+  tent-{{ site_slug }}-db:
+    name: tent-{{ site_slug }}-db

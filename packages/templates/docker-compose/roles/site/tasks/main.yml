@@ -1,0 +1,71 @@
+---
+# Generic docker-compose escape hatch. Downloads the operator-supplied
+# compose YAML, writes a .env with SITE_PORT/SITE_SLUG/SITE_DOMAIN, and
+# brings the stack up.
+#
+# Required tent-passed extra-vars:
+#   site_slug, site_domain, site_port
+#   var_compose_yaml_url   (secret — never logged)
+
+- name: site dir
+  ansible.builtin.file:
+    path: "/var/lib/tent/sites/{{ site_slug }}"
+    state: directory
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0755"
+
+- name: data dir (for stacks that want a host bind mount)
+  ansible.builtin.file:
+    path: "/var/lib/tent/sites/{{ site_slug }}/data"
+    state: directory
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0755"
+
+- name: compose — download user-supplied docker-compose.yml
+  ansible.builtin.get_url:
+    url: "{{ var_compose_yaml_url }}"
+    dest: "/var/lib/tent/sites/{{ site_slug }}/docker-compose.yml"
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0644"
+    force: true
+  no_log: true
+
+- name: .env — render SITE_* vars for compose interpolation
+  ansible.builtin.copy:
+    dest: "/var/lib/tent/sites/{{ site_slug }}/.env"
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0600"
+    content: |
+      SITE_SLUG={{ site_slug }}
+      SITE_DOMAIN={{ site_domain }}
+      SITE_PORT={{ site_port }}
+
+- name: docker compose — pull images
+  ansible.builtin.command:
+    cmd: docker compose pull
+    chdir: "/var/lib/tent/sites/{{ site_slug }}"
+  register: compose_pull
+  changed_when: "'Downloaded' in compose_pull.stdout or 'Pull complete' in compose_pull.stdout"
+  failed_when:
+    - compose_pull.rc != 0
+    - "'manifest unknown' not in compose_pull.stderr"
+
+- name: docker compose — up
+  ansible.builtin.command:
+    cmd: docker compose up -d --remove-orphans --build
+    chdir: "/var/lib/tent/sites/{{ site_slug }}"
+  register: compose_up
+  changed_when: "'Started' in compose_up.stdout or 'Created' in compose_up.stdout or 'Recreated' in compose_up.stdout"
+
+- name: wait for the stack to respond on {{ site_port }}
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ site_port }}/"
+    status_code: [200, 301, 302, 307, 308, 404]
+  register: probe
+  retries: 30
+  delay: 3
+  until: probe.status in [200, 301, 302, 307, 308, 404]

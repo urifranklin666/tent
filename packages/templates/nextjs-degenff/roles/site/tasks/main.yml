@@ -1,0 +1,92 @@
+---
+# Builds and runs a Next.js app from a git repo using a stock Dockerfile.
+# Required tent-passed extra-vars:
+#   site_slug, site_domain, site_port
+#   var_git_repo
+#   var_git_ref
+# Optional:
+#   var_env_file_url   — URL to a raw .env file (downloaded at deploy time)
+
+- name: site dir
+  ansible.builtin.file:
+    path: "/var/lib/tent/sites/{{ site_slug }}"
+    state: directory
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0755"
+
+- name: git — clone or update repo
+  ansible.builtin.git:
+    repo: "{{ var_git_repo }}"
+    dest: "/var/lib/tent/sites/{{ site_slug }}/src"
+    version: "{{ var_git_ref }}"
+    force: true
+  become_user: "{{ tent_operator_user }}"
+
+- name: env — download .env.production (if URL provided)
+  ansible.builtin.get_url:
+    url: "{{ var_env_file_url }}"
+    dest: "/var/lib/tent/sites/{{ site_slug }}/src/.env.production"
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0600"
+    force: true
+  when: var_env_file_url is defined and var_env_file_url | length > 0
+
+- name: env — ensure empty .env.production exists if URL not provided
+  ansible.builtin.copy:
+    content: ""
+    dest: "/var/lib/tent/sites/{{ site_slug }}/src/.env.production"
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0600"
+    force: false
+  when: (var_env_file_url is not defined) or (var_env_file_url | length == 0)
+
+- name: dockerfile — render tent's stock multi-stage Dockerfile
+  ansible.builtin.template:
+    src: Dockerfile.tent.j2
+    dest: "/var/lib/tent/sites/{{ site_slug }}/src/Dockerfile.tent"
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0644"
+
+- name: dockerignore — render a sane default if missing
+  ansible.builtin.copy:
+    src: dockerignore.tent
+    dest: "/var/lib/tent/sites/{{ site_slug }}/src/.dockerignore"
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0644"
+    force: false
+
+- name: compose — render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "/var/lib/tent/sites/{{ site_slug }}/docker-compose.yml"
+    owner: "{{ tent_operator_user }}"
+    group: "{{ tent_operator_user }}"
+    mode: "0644"
+
+- name: docker compose — build
+  ansible.builtin.command:
+    cmd: docker compose build
+    chdir: "/var/lib/tent/sites/{{ site_slug }}"
+  register: compose_build
+  changed_when: "'Building' in compose_build.stdout or 'naming to' in compose_build.stderr"
+
+- name: docker compose — up
+  ansible.builtin.command:
+    cmd: docker compose up -d --remove-orphans
+    chdir: "/var/lib/tent/sites/{{ site_slug }}"
+  register: compose_up
+  changed_when: "'Started' in compose_up.stdout or 'Created' in compose_up.stdout or 'Recreated' in compose_up.stdout"
+
+- name: wait for container to respond on {{ site_port }}
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ site_port }}/"
+    status_code: [200, 301, 302, 307, 308, 404]
+  register: probe
+  retries: 30
+  delay: 3
+  until: probe.status in [200, 301, 302, 307, 308, 404]

@@ -1,0 +1,50 @@
+# Stock tent Dockerfile for Next.js apps. Auto-detects the package manager.
+# Lives at .Dockerfile.tent so it doesn't conflict with any Dockerfile the
+# repo ships of its own.
+
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Copy lockfiles + manifests separately so the layer caches well.
+COPY package.json* ./
+COPY yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+
+RUN \
+  if [ -f pnpm-lock.yaml ]; then \
+    corepack enable && pnpm install --frozen-lockfile; \
+  elif [ -f yarn.lock ]; then \
+    yarn install --frozen-lockfile; \
+  elif [ -f package-lock.json ]; then \
+    npm ci; \
+  else \
+    npm install; \
+  fi
+
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+ENV NODE_ENV=production
+RUN \
+  if [ -f pnpm-lock.yaml ]; then \
+    corepack enable && pnpm run build; \
+  elif [ -f yarn.lock ]; then \
+    yarn build; \
+  else \
+    npm run build; \
+  fi
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+# We copy the whole built app rather than picking specific files — supports
+# both `output: "standalone"` Next configs and the default output.
+COPY --from=builder /app ./
+
+EXPOSE 3000
+CMD ["sh", "-c", "if [ -f .next/standalone/server.js ]; then node .next/standalone/server.js; elif [ -f node_modules/.bin/next ]; then node_modules/.bin/next start; else npx next start; fi"]

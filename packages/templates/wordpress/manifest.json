@@ -1,0 +1,33 @@
+{
+  "name": "wordpress",
+  "version": "1.0.0",
+  "description": "WordPress + MariaDB via Docker Compose. Uploads persist on the host; database lives in a docker volume.",
+  "variables": {
+    "site_title": {
+      "type": "string",
+      "description": "Browser-tab title used during the WordPress installer.",
+      "default": "tent wordpress site",
+      "optional": false
+    },
+    "admin_email": {
+      "type": "string",
+      "description": "Email address that will be the WordPress admin during install.",
+      "optional": false
+    },
+    "db_password": {
+      "type": "string",
+      "description": "Password for the wordpress mariadb user (root is randomly generated).",
+      "optional": false,
+      "secret": true
+    }
+  },
+  "requires": {
+    "docker": true,
+    "postgres": false,
+    "nodejs": false
+  },
+  "ports": {
+    "internal": 80
+  },
+  "healthCheckPath": "/wp-login.php"
+}

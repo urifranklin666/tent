@@ -1,0 +1,19 @@
+{
+  "name": "docker-compose",
+  "version": "1.0.0",
+  "description": "Escape hatch: deploy any Docker Compose stack you supply by URL. Your compose must bind something to 127.0.0.1:${SITE_PORT}.",
+  "variables": {
+    "compose_yaml_url": {
+      "type": "string",
+      "description": "URL to a raw docker-compose.yml (e.g. a private gist's raw URL). The role fetches this at every deploy. Your compose must reference ${SITE_PORT} for the host port binding.",
+      "optional": false,
+      "secret": true
+    }
+  },
+  "requires": {
+    "docker": true,
+    "postgres": false,
+    "nodejs": false
+  },
+  "healthCheckPath": "/"
+}

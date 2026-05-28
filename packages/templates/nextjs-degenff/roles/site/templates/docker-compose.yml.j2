@@ -1,0 +1,21 @@
+services:
+  web:
+    build:
+      context: ./src
+      dockerfile: Dockerfile.tent
+    container_name: tent-{{ site_slug }}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:{{ site_port }}:3000"
+    env_file:
+      - ./src/.env.production
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+    networks:
+      - tent
+
+networks:
+  tent:
+    external: true
