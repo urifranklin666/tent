@@ -10,9 +10,13 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
   if (!site) notFound();
   const server = await ServerService.get(site.serverId);
 
-  async function destroySite() {
+  async function destroySite(formData: FormData) {
     "use server";
     await requireRole("admin");
+    const confirmDomain = String(formData.get("confirmDomain") ?? "");
+    if (confirmDomain !== site!.domain) {
+      throw new Error(`Type the domain "${site!.domain}" to confirm.`);
+    }
     const { jobId } = await SiteService.destroy(site!.id);
     redirect(`/jobs/${jobId}`);
   }
@@ -58,9 +62,21 @@ export default async function SiteDetailPage({ params }: { params: Promise<{ id:
       ) : null}
 
       {site.status !== "destroyed" && site.status !== "destroying" ? (
-        <form action={destroySite}>
-          <button type="submit" className="danger">destroy site</button>
-        </form>
+        <div className="panel" style={{ borderColor: "var(--bad)" }}>
+          <div className="panel-title" style={{ color: "var(--bad)" }}>danger zone</div>
+          <p className="dim mb-2" style={{ fontSize: "0.85rem" }}>
+            Destroying removes the cloudflare DNS record, tunnel ingress, and
+            container. To confirm, type the domain{" "}
+            <span className="mono">{site.domain}</span> below.
+          </p>
+          <form action={destroySite} className="row gap-2" style={{ alignItems: "flex-end" }}>
+            <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+              <label htmlFor="confirmDomain">type domain to confirm</label>
+              <input id="confirmDomain" name="confirmDomain" autoComplete="off" required />
+            </div>
+            <button type="submit" className="danger">destroy site</button>
+          </form>
+        </div>
       ) : null}
     </>
   );

@@ -31,7 +31,10 @@ export default async function SecretsPage() {
   async function deleteSecret(formData: FormData) {
     "use server";
     await requireRole("admin");
-    const scope = String(formData.get("scope") ?? "global") as "global" | "server" | "site";
+    const rawScope = String(formData.get("scope") ?? "global");
+    const scope = (["global", "server", "site"] as const).includes(rawScope as "global")
+      ? (rawScope as "global" | "server" | "site")
+      : "global";
     const scopeRef = formData.get("scopeRef") ? String(formData.get("scopeRef")) : null;
     const key = String(formData.get("key") ?? "");
     if (!key) return;

@@ -30,7 +30,7 @@ async function getStats() {
     sitesLive: allSites.filter((s) => s.status === "live").length,
     jobsRunning: jobCounts.find((j) => j.state === "running")?.n ?? 0,
     jobsQueued: jobCounts.find((j) => j.state === "queued")?.n ?? 0,
-    jobsFailed24h: jobCounts.find((j) => j.state === "failed")?.n ?? 0,
+    jobsFailed: jobCounts.find((j) => j.state === "failed")?.n ?? 0,
   };
 }
 
@@ -54,7 +54,7 @@ export default async function DashboardPage() {
         <Stat title="servers" value={stats.serversTotal} sub={`${stats.serversReady} ready`} />
         <Stat title="sites" value={stats.sitesTotal} sub={`${stats.sitesLive} live`} />
         <Stat title="jobs running" value={stats.jobsRunning} sub={`${stats.jobsQueued} queued`} />
-        <Stat title="jobs failed" value={stats.jobsFailed24h} tone={stats.jobsFailed24h > 0 ? "bad" : "muted"} />
+        <Stat title="jobs failed" value={stats.jobsFailed} tone={stats.jobsFailed > 0 ? "bad" : "muted"} />
       </div>
 
       <div className="panel">
@@ -104,7 +104,7 @@ function Stat({
   return (
     <div className="panel">
       <div className="panel-title">{title}</div>
-      <div className={`panel-value ${tone === "bad" ? "" : ""}`} style={tone === "bad" ? { color: "var(--bad)" } : undefined}>
+      <div className="panel-value" style={tone === "bad" ? { color: "var(--bad)" } : undefined}>
         {value}
       </div>
       {sub ? <div className="dim mono mt-1" style={{ fontSize: "0.8rem" }}>{sub}</div> : null}
